@@ -1,6 +1,6 @@
 {
   "author": "Lucas Hrabovsky <lucas@ex.fm>",
-  "name": "node-counterman",
+  "name": "counterman",
   "description": "Simple counter service to move autoinc id&#x27;s out of the db",
   "version": "0.0.0",
   "homepage": "http://github.com/exfm/node-counterman",
@@ -11,10 +11,12 @@
   "scripts": {
     "test": "mocha"
   },
-  "dependencies": {},
+  "dependencies": {
+    "express": "3.0.X",
+    "nconf": "0.6.4"
+  },
   "devDependencies": {
-    "mocha": "1.4.1",
-    "chai": "1.2.0"
+    "mocha": "1.4.1"
   },
   "optionalDependencies": {},
   "engines": {
