@@ -1,107 +1,71 @@
 "use strict";
 var fs = require('fs'),
-    express = require("express"),
-    nconf = require('nconf');
-
-nconf
-    .argv()
-    .env()
-    .use('memory');
+    EventEmitter = require('events').EventEmitter,
+    util = require('util');
 
 
-nconf.defaults({
-    'name': 'counter',
-    'port': 49999,
-    'file': 'config.json'
-});
-
-nconf.file(nconf.get('file'));
-
-
-function Counter(name){
+function Counter(name, initHandler, persistHandler){
     this.last = 0;
-    this.path = name + ".counter";
+    this.persistHandler = persistHandler || function(counter, val, cb){
+        fs.writeFile(counter.name + ".counter", "" + val, function(err){
+            if(cb){
+                cb(err);
+            }
+        });
+    };
+    this.initHandler = initHandler || function(counter, cb){
+        fs.readFile(counter.path, function(err, data){
+            cb(Number(data));
+        });
+    };
+
     this.queue = [];
     this.working = false;
-    this.lockFilePath = "/tmp/counterman." + name + ".lock";
-
-    if(fs.existsSync(this.lockFilePath)){
-        throw new Error('Lock file at ' + this.lockFilePath + ' exists!  Wont start until you remove it.');
-    }
-    fs.writeFileSync(this.lockFilePath, '1');
-
-    if(fs.existsSync(this.path)){
-        this.last = Number(fs.readFileSync(this.path));
-    }
-
-    var self = this,
-        queueCallback = function(){};
-
-    this.persistInterval = setInterval(function(){
-        self.persist();
-    }, 10000);
-
-    this.loopInterval = setInterval(function(){
-        if(self.queue.length > 0 && self.working === false){
-            self.working = true;
-            while(queueCallback = self.queue.shift()){
-                self.last++;
-                queueCallback(self.last);
-            }
-            self.working = false;
-        }
-    }, 1);
-    console.log('COUNTERMAN for ' + name + ' ready! Last is ' + this.last);
 }
+util.inherits(Counter, EventEmitter);
+
+Counter.prototype.start = function(){
+    var self = this;
+    function loop(){
+        self.persistInterval = setInterval(function(){
+            self.persist();
+        }, 10000);
+
+        self.loopInterval = setInterval(function(){
+            self.processQueue();
+        }, 1);
+    }
+
+    this.initHandler(this, function(id){
+        self.last = id;
+        self.emit('ready');
+        loop();
+    });
+};
 
 Counter.prototype.allocate = function(cb){
     this.queue.push(cb);
 };
 
+Counter.prototype.processQueue = function(){
+    var queueCallback = function(){};
+    if(this.queue.length > 0 && this.working === false){
+        this.working = true;
+        while(queueCallback = this.queue.shift()){
+            this.last++;
+            queueCallback(this.last);
+        }
+        this.working = false;
+    }
+};
+
 Counter.prototype.persist = function(cb){
-    fs.writeFile(this.path, "" + this.last, function(err){
+    this.persistHandler(this, this.last, function(err){
         if(cb){
             cb(err);
+            this.emit('persist', err);
         }
-    });
+    }.bind(this));
 };
 
-Counter.prototype.close = function(){
-    clearInterval(this.persistInterval);
-    clearInterval(this.loopInterval);
-
-    // Clear lock file
-    fs.unlinkSync(this.lockFilePath);
-};
-
-var app = express(),
-    port = nconf.get('port'),
-    counter = new Counter(nconf.get('name'));
-
-app.configure(function(){
-    app.use(app.router);
-});
-
-app.get('/', function(req, res){
-    res.send(""+counter.last);
-});
-
-app.post('/', function(req, res){
-    counter.allocate(function(id){
-        res.send(""+id);
-    });
-});
-
-app.listen(port, function(){
-    console.log('COUNTERMAN for '+ nconf.get('name') +' listening on ' + port);
-});
-
-var shutdown = function(){
-    counter.persist(function(){
-        counter.close();
-        process.exit(0);
-    });
-};
-
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+module.exports = Counter;

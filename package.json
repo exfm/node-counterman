@@ -1,7 +1,7 @@
 {
   "author": "Lucas Hrabovsky <lucas@ex.fm>",
   "name": "counterman",
-  "description": "Simple counter service to move autoinc id&#x27;s out of the db",
+  "description": "Simple counter service to move autoinc id's out of the db",
   "version": "0.0.0",
   "homepage": "http://github.com/exfm/node-counterman",
   "repository": {
@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "express": "3.0.X",
-    "nconf": "0.6.4"
+    "mambo": "0.0.3",
+    "junto": "git+ssh://git@github.com/exfm/node-junto.git"
   },
   "devDependencies": {
-    "mocha": "1.4.1"
   },
   "optionalDependencies": {},
   "engines": {
