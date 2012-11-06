@@ -4,6 +4,7 @@ var express = require('express'),
     Counter = require('./'),
     mambo = require('mambo'),
     junto = require('junto'),
+    nurse = require('nurse'),
     Schema = mambo.Schema,
     StringField = mambo.StringField,
     NumberField = mambo.NumberField;
@@ -45,7 +46,8 @@ var app = express(),
     counter,
     serviceName = process.env.SERVICE_NAME || 'randomcounter',
     nodeEnv = process.env.NODE_ENV || 'development',
-    name = serviceName + "-" + nodeEnv;
+    name = serviceName + "-" + nodeEnv,
+    server;
 
 junto(process.env.NODE_ENV).then(function(config){
     Model.connect(config.aws.key, config.aws.secret);
@@ -64,7 +66,7 @@ junto(process.env.NODE_ENV).then(function(config){
     );
 
     counter.on('ready', function(){
-        app.listen(8080, function(){
+        server = app.listen(8080, function(){
             console.log("Counter " + name + " listening on 8080");
         });
     });
@@ -73,6 +75,10 @@ junto(process.env.NODE_ENV).then(function(config){
 
 app.configure(function(){
     app.use(app.router);
+});
+
+app.get('/health-check', function(req, res){
+    res.send(nurse({'ok': true, 'server': server}));
 });
 
 app.get('/', function(req, res){
