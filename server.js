@@ -66,8 +66,8 @@ junto(process.env.NODE_ENV).then(function(config){
     );
 
     counter.on('ready', function(){
-        server = app.listen(80, function(){
-            console.log("Counter " + name + " listening on 80");
+        server = app.listen(8080, function(){
+            console.log("Counter " + name + " listening on 8080");
         });
     });
     counter.start();
